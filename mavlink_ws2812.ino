@@ -1,5 +1,10 @@
 #include <MAVLink.h>
+#include <Wire.h>
+#include <Adafruit_NeoPixel.h>
 
+#define PIN_WS2812B 4  // The ESP32 pin GPIO16 connected to WS2812B
+#define NUM_PIXELS 60   // The number of LEDs (pixels) on WS2812B LED strip
+int LED_BUILTIN = 2;
 // ESP32 串口通信示例
 // 使用Serial(USB)和Serial1(硬件串口)进行数据收发
 
@@ -8,6 +13,10 @@
 #define SERIAL1_TX_PIN 18
 
 // 设置函数
+
+Adafruit_NeoPixel ws2812b(NUM_PIXELS, PIN_WS2812B, NEO_GRB + NEO_KHZ800);
+
+
 void setup() {
   // 初始化USB串口，用于与计算机通信
   Serial.begin(115200);
@@ -19,8 +28,47 @@ void setup() {
   delay(1000);
   
   // 打印欢迎信息
-  // Serial.println("Press Help to show how to do");
+  Serial.println("Press Help to show how to do");
   Serial.println("------------------------------");
+
+  pinMode(LED_BUILTIN, OUTPUT);
+
+
+  ws2812b.begin();  // initialize WS2812B strip object (REQUIRED)
+
+  ws2812b.clear();  // set all pixel colors to 'off'. It only takes effect if pixels.show() is called
+
+  // turn pixels to green one-by-one with delay between each pixel
+  for (int pixel = 0; pixel < NUM_PIXELS; pixel++) {         // for each pixel
+    ws2812b.setPixelColor(pixel, ws2812b.Color(0, 255, 0));  // it only takes effect if pixels.show() is called
+    ws2812b.show();                                          // update to the WS2812B Led Strip
+
+    delay(50);  // 500ms pause between each pixel
+  }
+
+  // turn off all pixels for two seconds
+  ws2812b.clear();
+  ws2812b.show();  // update to the WS2812B Led Strip
+  delay(500);      // 2 seconds off time
+
+  for (int pixel = 0; pixel < NUM_PIXELS; pixel++) {         // for each pixel
+    ws2812b.setPixelColor(pixel, ws2812b.Color(255, 0, 0));  // it only takes effect if pixels.show() is called
+    ws2812b.show();                                          // update to the WS2812B Led Strip
+    delay(50);                                               // 500ms pause between each pixel
+  }
+  // turn off all pixels for one seconds
+  ws2812b.clear();
+  ws2812b.show();  // update to the WS2812B Led Strip
+  delay(500);      // 1 second off time
+
+  for (int pixel = 0; pixel < NUM_PIXELS; pixel++) {             // for each pixel
+    ws2812b.setPixelColor(pixel, ws2812b.Color(85, 85, 85));  // it only takes effect if pixels.show() is called
+    ws2812b.show();                                              // update to the WS2812B Led Strip
+
+    delay(50);  // 500ms pause between each pixel
+  }
+
+
 }
 
 // 主循环
@@ -32,7 +80,7 @@ void loop() {
   // sendMAVLink();
   
   // 短暂延迟以减少CPU占用
-  delay(10);
+  delay(1);
 }
 
 void compareStrings(String input) {
@@ -48,6 +96,15 @@ void compareStrings(String input) {
   }else if(input.equalsIgnoreCase("set")) {
     Serial.println("SET PARAM");
     sendMAVLinkSetAngleMax();
+  }else if(input.equalsIgnoreCase("off")) {
+    Serial.println("LED OFF");
+    ws2812b.clear();
+    ws2812b.show();  // update to the WS2812B Led Strip
+  }else if(input.equalsIgnoreCase("help")) {
+    Serial.println("LAND");
+    Serial.println("SET");
+    Serial.println("OFF");
+    // Serial.println("LED OFF");
   }
     
 }
@@ -134,6 +191,9 @@ void receiveMAVLink() {
   // Parse MAVLink message
   mavlink_message_t msg;
   mavlink_status_t status;
+
+  uint8_t r,g,b;
+
   for (int i = 0; i < bytesRead; i++) {
     if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
       switch (msg.msgid) {
@@ -154,6 +214,33 @@ void receiveMAVLink() {
           Serial.print(" r=");
           Serial.println(manualControl.r);
           break;
+        case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+          mavlink_rc_channels_override_t rc_override;
+          mavlink_msg_rc_channels_override_decode(&msg, &rc_override);
+                   
+          // 提取 RGB 值从通道数据
+
+          // 通道值范围通常是 1000-2000，我们映射到 0-255
+          Serial.print("Received RC_CHANNELS_OVERRIDE:");
+          Serial.print(" R=");
+          Serial.print(rc_override.chan1_raw);
+          Serial.print(" G=");
+          Serial.print(rc_override.chan2_raw);
+          Serial.print(" B=");
+          Serial.println(rc_override.chan3_raw);
+
+          r = (uint8_t)rc_override.chan1_raw;
+          g = (uint8_t)rc_override.chan2_raw;
+          b = (uint8_t)rc_override.chan3_raw;
+
+          for (int pixel = 0; pixel < NUM_PIXELS; pixel++) {         // for each pixel
+            ws2812b.setPixelColor(pixel, ws2812b.Color(r, g, b));  // it only takes effect if pixels.show() is called
+          }
+
+          ws2812b.show();  // update to the WS2812B Led Strip
+
+          break;
+
         default:
           Serial.print("Received message with ID ");
           Serial.println(msg.msgid);
