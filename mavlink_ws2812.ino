@@ -9,8 +9,8 @@ int LED_BUILTIN = 2;
 // 使用Serial(USB)和Serial1(硬件串口)进行数据收发
 
 // 定义引脚 - ESP32的默认Serial1引脚是GPIO9(RX)和GPIO10(TX)
-#define SERIAL1_RX_PIN 19
-#define SERIAL1_TX_PIN 18
+#define SERIAL1_RX_PIN 27
+#define SERIAL1_TX_PIN 26
 
 // 设置函数
 
@@ -22,7 +22,7 @@ void setup() {
   Serial.begin(115200);
   
   // 初始化硬件串口1，用于与其他设备通信
-  Serial1.begin(115200, SERIAL_8N1, SERIAL1_RX_PIN, SERIAL1_TX_PIN);
+  Serial1.begin(57600, SERIAL_8N1, SERIAL1_RX_PIN, SERIAL1_TX_PIN);
   
   // 等待串口初始化完成
   delay(1000);
@@ -71,6 +71,9 @@ void setup() {
 
 }
 
+int led_blink_count = 0;
+bool toggle = false;
+
 // 主循环
 void loop() {
 
@@ -81,6 +84,19 @@ void loop() {
   
   // 短暂延迟以减少CPU占用
   delay(1);
+
+    if (led_blink_count++ > 500) {
+    toggle = !toggle;
+    led_blink_count = 0;
+  }
+
+  if (toggle) {
+    digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
+
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);  // turn the LED off by making the voltage LOW
+  }
+
 }
 
 void compareStrings(String input) {
