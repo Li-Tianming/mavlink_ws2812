@@ -73,6 +73,8 @@ void setup() {
 
 int led_blink_count = 0;
 bool toggle = false;
+bool auto_off = true;
+int auto_off_count = 0;
 
 // 主循环
 void loop() {
@@ -97,6 +99,15 @@ void loop() {
     digitalWrite(LED_BUILTIN, LOW);  // turn the LED off by making the voltage LOW
   }
 
+  if(auto_off){
+      //3s
+      if (auto_off_count++ > 3000) {
+        auto_off_count = 0;
+        ws2812b.clear();
+        ws2812b.show();  // update to the WS2812B Led Strip
+    }
+  }
+
 }
 
 void compareStrings(String input) {
@@ -116,10 +127,15 @@ void compareStrings(String input) {
     Serial.println("LED OFF");
     ws2812b.clear();
     ws2812b.show();  // update to the WS2812B Led Strip
+  }else if(input.equalsIgnoreCase("aoff")) {
+    auto_off = !auto_off;
+    Serial.print("LED AUTO OFF 3S");
+    Serial.println(auto_off);
   }else if(input.equalsIgnoreCase("help")) {
     Serial.println("LAND");
     Serial.println("SET");
     Serial.println("OFF");
+    Serial.println("AOFF");
     // Serial.println("LED OFF");
   }
     
